@@ -1,71 +1,129 @@
-import termcolor
-import json
-import datetime
+import sqlite3
 
-Task_id    = 1 
-Tasks = []
+input_message = """
+What Do You Want To Do ? 
+"s" => Show All Skills 
+"a" => Add New Skill
+"d" => Delete Skill
+"u" => Update Skill Progress
+"q" => Quit The App 
+"""
 
-def Task_Add(Task_Name):
-    
-    global Task_id
-    
-    Task  = {
-        "Id" : Task_id , 
-        "Description" : Task_Name , 
-        "Status"      : "todo" , 
-        "CreatedAt"   : datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") , 
-        "UpdatedAt"   : datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-    
-    Tasks.append(Task)
-    
-    # Output
-    
-    print(f"Task added successfully (ID: {Task_id})")
-    Task_id += 1
+def Show_Skills():
+    try:
+        # Connect To Database
+        db = sqlite3.connect("Skills.db")
+        cr = db.cursor()
 
-def Task_Update(Task_Id , NewTask):
+        # Fetch Data And Show Skills
+        cr.execute("SELECT * FROM SKILLS")
+        results = cr.fetchall()
+        print("--------------------- All Skills ------------------------")
+        for skill_name, skill_progress in results:
+            print(f"Skill Name => {skill_name} | Skill Progress => {skill_progress}")
+        print("---------------------------------------------------------")
 
-    # Search For Existing Task By Id In The File And Update It By New One
+    except sqlite3.Error as error:
+        print(f"Error, Failed To Connect To Database: {error}")
 
-    # Output : 
+    finally:
+        if db:
+            db.close()
 
-    print(f"Task Updated Succesfully")
+def Add_Skill(skill_name):
+    try:
+        # Connect To Database
+        db = sqlite3.connect("Skills.db")
+        cr = db.cursor()
 
-    pass
+        # Create Table If Not Exists
+        cr.execute("CREATE TABLE IF NOT EXISTS SKILLS(name text, progress integer DEFAULT 0)")
 
-def Task_Delete(Task_Id):
+        # Insert Data To Database
+        cr.execute("INSERT INTO SKILLS(name) VALUES(?)", (skill_name,))
 
-    # Find Task By Id And Delete It 
+        # Commit Changes
+        db.commit()
+        print(f"Skill {skill_name} Added Successfully")
 
-    # Output : 
+    except sqlite3.Error as error:
+        print(f"Error, Database Problem: {error}")
 
-    pass
+    finally:
+        if db:
+            db.close()
 
-def Task_List(Status):
+def Delete_Skill(skill_name):
+    try:
+        # Connect To Database
+        db = sqlite3.connect("Skills.db")
+        cr = db.cursor()
 
-    if (Status == "NULL"): 
-        for Task in Tasks : 
-            print(Task)
+        # Delete Data
+        cr.execute("DELETE FROM SKILLS WHERE name = ?", (skill_name,))
 
+        # Commit Changes
+        db.commit()
+        print(f"Skill {skill_name} Removed Successfully")
+
+    except sqlite3.Error as error:
+        print(f"Error, Database Problem: {error}")
+
+    finally:
+        if db:
+            db.close()
+
+def Update_Skill(skill_name, new_progress):
+    try:
+        # Connect To Database
+        db = sqlite3.connect("Skills.db")
+        cr = db.cursor()
+
+        # Update Data
+        cr.execute("UPDATE SKILLS SET progress = ? WHERE name = ?", (new_progress, skill_name))
+
+        # Commit Changes
+        db.commit()
+        print(f"Skill Progress {skill_name} Updated Successfully, New Progress = {new_progress}")
+
+    except sqlite3.Error as error:
+        print(f"Error, Database Error: {error}")
+
+    finally:
+        if db:
+            db.close()
+
+def Switch(user_input):
+    if user_input == 's':
+        Show_Skills()
+
+    elif user_input == 'a':
+        rep = 'y'
+        while rep == 'y':
+            Add_Skill(input("Skill Name: "))
+            rep = input("Do You Want To Add More (y/n)? : ")
+
+    elif user_input == 'd':
+        rep = 'y'
+        while rep == 'y':
+            Delete_Skill(input("Skill Name: "))
+            rep = input("Do You Want To Delete More (y/n)? : ")
+
+    elif user_input == 'u':
+        rep = 'y'
+        while rep == 'y':
+            Update_Skill(input("Skill Name: "), input("New Progress: "))
+            rep = input("Do You Want To Update More (y/n)? : ")
+
+    else:
+        print("Not Found")
 
 def Main():
+    user_input = input(input_message).strip()
+    while user_input != "q":
+        Switch(user_input)
+        user_input = input(input_message).strip()
+    print("Quitting the application...")
 
-    cli = input(termcolor.colored(("task-cli "),color="yellow"))
-
-    if (cli.startswith("add")) :
-
-        Task_Add(cli[4::])
-        Main()
-
-    elif(cli.startswith("Update")) : 
-
-        Task_Update(cli[7],cli[9::])
-
-    elif(cli == "list") : Task_List("NULL")
-
-    
-
-
-
-Main()
+if __name__ == "__main__":
+    Main()
